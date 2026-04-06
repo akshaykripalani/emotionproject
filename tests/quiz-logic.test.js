@@ -7,6 +7,8 @@ const {
   difficultyForEmotion,
   formatCameraStatus,
   generateQuestion,
+  generateMathQuestion,
+  resetUsedQuestions,
 } = require("../quiz-logic.js");
 
 function parseQuestion(questionText) {
@@ -16,26 +18,20 @@ function parseQuestion(questionText) {
   const operator = match[2];
   const right = Number(match[3]);
 
-  if (operator === "+") {
-    return left + right;
-  }
-
-  if (operator === "-") {
-    return left - right;
-  }
-
-  if (operator === "x") {
-    return left * right;
-  }
-
+  if (operator === "+") return left + right;
+  if (operator === "-") return left - right;
+  if (operator === "x") return left * right;
   return left / right;
 }
 
 test("difficultyForEmotion maps emotion states correctly", () => {
   assert.equal(difficultyForEmotion("sad"), "easy");
   assert.equal(difficultyForEmotion("frustrated"), "easy");
+  assert.equal(difficultyForEmotion("confused"), "easy");
   assert.equal(difficultyForEmotion("happy"), "hard");
   assert.equal(difficultyForEmotion("neutral"), "hard");
+  assert.equal(difficultyForEmotion("focused"), "hard");
+  assert.equal(difficultyForEmotion("surprised"), "hard");
 });
 
 test("createOptions includes the correct answer and four unique values", () => {
@@ -45,24 +41,41 @@ test("createOptions includes the correct answer and four unique values", () => {
   assert.ok(options.includes(12));
 });
 
-test("generateQuestion returns valid easy questions", () => {
-  for (let index = 0; index < 50; index += 1) {
-    const question = generateQuestion("easy");
-    assert.equal(question.options.length, 4);
-    assert.equal(new Set(question.options).size, 4);
-    assert.ok(question.options.includes(question.correctAnswer));
-    assert.equal(parseQuestion(question.text), question.correctAnswer);
+test("generateMathQuestion returns valid easy math questions", () => {
+  for (let i = 0; i < 50; i++) {
+    const q = generateMathQuestion("easy");
+    assert.equal(q.category, "Math");
+    assert.equal(q.options.length, 4);
+    assert.equal(new Set(q.options).size, 4);
+    assert.ok(q.options.includes(q.correctAnswer));
+    assert.equal(parseQuestion(q.text), q.correctAnswer);
   }
 });
 
-test("generateQuestion returns valid hard questions", () => {
-  for (let index = 0; index < 50; index += 1) {
-    const question = generateQuestion("hard");
-    assert.equal(question.options.length, 4);
-    assert.equal(new Set(question.options).size, 4);
-    assert.ok(question.options.includes(question.correctAnswer));
-    assert.equal(parseQuestion(question.text), question.correctAnswer);
+test("generateMathQuestion returns valid hard math questions", () => {
+  for (let i = 0; i < 50; i++) {
+    const q = generateMathQuestion("hard");
+    assert.equal(q.category, "Math");
+    assert.equal(q.options.length, 4);
+    assert.equal(new Set(q.options).size, 4);
+    assert.ok(q.options.includes(q.correctAnswer));
+    assert.equal(parseQuestion(q.text), q.correctAnswer);
   }
+});
+
+test("generateQuestion falls back to math when no CSV loaded", () => {
+  // in Node env, no CSV is loaded, so GK falls back to math
+  resetUsedQuestions();
+  for (let i = 0; i < 20; i++) {
+    const q = generateQuestion("easy");
+    assert.equal(q.category, "Math"); // all math since CSV not available
+    assert.equal(q.options.length, 4);
+    assert.ok(q.options.includes(q.correctAnswer));
+  }
+});
+
+test("resetUsedQuestions can be called without error", () => {
+  assert.doesNotThrow(() => resetUsedQuestions());
 });
 
 test("capitalize and formatCameraStatus return expected labels", () => {

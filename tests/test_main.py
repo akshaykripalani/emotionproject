@@ -21,8 +21,11 @@ class EmotionMonitorTests(unittest.TestCase):
     def test_difficulty_for_emotion(self):
         self.assertEqual(main.difficulty_for_emotion("sad"), "easy")
         self.assertEqual(main.difficulty_for_emotion("frustrated"), "easy")
+        self.assertEqual(main.difficulty_for_emotion("confused"), "easy")
         self.assertEqual(main.difficulty_for_emotion("happy"), "hard")
         self.assertEqual(main.difficulty_for_emotion("neutral"), "hard")
+        self.assertEqual(main.difficulty_for_emotion("focused"), "hard")
+        self.assertEqual(main.difficulty_for_emotion("surprised"), "hard")
 
     def test_websocket_interval_is_ten_hz(self):
         self.assertEqual(main.WEBSOCKET_INTERVAL_SECONDS, 0.1)
@@ -66,6 +69,51 @@ class EmotionMonitorTests(unittest.TestCase):
             }
         )
         self.assertEqual(self.monitor._classify_emotion(result), "frustrated")
+
+    def test_classify_surprised_blendshapes(self):
+        result = make_result(
+            {
+                "browOuterUpLeft": 0.22,
+                "browOuterUpRight": 0.2,
+                "browInnerUp": 0.25,
+                "eyeWideLeft": 0.2,
+                "eyeWideRight": 0.18,
+                "jawOpen": 0.2,
+                "mouthSmileLeft": 0.05,
+                "mouthSmileRight": 0.04,
+            }
+        )
+        self.assertEqual(self.monitor._classify_emotion(result), "surprised")
+
+    def test_classify_confused_blendshapes(self):
+        result = make_result(
+            {
+                "browDownLeft": 0.2,
+                "browDownRight": 0.05,
+                "eyeSquintLeft": 0.15,
+                "eyeSquintRight": 0.12,
+                "mouthPucker": 0.1,
+                "mouthSmileLeft": 0.04,
+                "mouthSmileRight": 0.03,
+            }
+        )
+        self.assertEqual(self.monitor._classify_emotion(result), "confused")
+
+    def test_classify_focused_blendshapes(self):
+        result = make_result(
+            {
+                "browDownLeft": 0.1,
+                "browDownRight": 0.12,
+                "eyeSquintLeft": 0.09,
+                "eyeSquintRight": 0.08,
+                "mouthSmileLeft": 0.03,
+                "mouthSmileRight": 0.04,
+                "mouthFrownLeft": 0.03,
+                "mouthFrownRight": 0.02,
+                "jawOpen": 0.04,
+            }
+        )
+        self.assertEqual(self.monitor._classify_emotion(result), "focused")
 
     def test_stable_emotion_prefers_most_recent_on_tie(self):
         self.monitor.history.extend(["sad", "happy", "sad", "happy"])

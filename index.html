@@ -3,50 +3,251 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Emotion Math Quiz</title>
+  <title>EmotiSense — Emotion-Adaptive Quiz</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <main class="app">
-    <section class="card" id="appCard" data-emotion="neutral">
-      <header class="hero">
-        <p class="eyebrow">College Project</p>
-        <h1>Emotion-Aware Math Quiz</h1>
-        <p class="subtitle">Python reads the webcam, detects emotion live, and the quiz adapts in real time.</p>
-      </header>
 
-      <section class="status-grid" aria-label="Quiz status">
-        <div class="status-box" id="emotionBox" data-emotion="neutral">
-          <span class="status-label">Emotion</span>
-          <strong id="emotionValue">Neutral</strong>
-        </div>
-        <div class="status-box" id="difficultyBox" data-difficulty="hard">
-          <span class="status-label">Difficulty</span>
-          <strong id="difficultyValue">Hard</strong>
-        </div>
-        <div class="status-box" id="cameraBox" data-camera="starting">
-          <span class="status-label">Webcam</span>
-          <strong id="cameraValue">Starting...</strong>
-        </div>
-        <div class="status-box">
-          <span class="status-label">Score</span>
-          <strong id="scoreValue">0 / 0</strong>
-        </div>
-      </section>
+  <!-- ===== NAV ===== -->
+  <nav class="nav">
+    <div class="nav-brand">EmotiSense</div>
+    <div class="nav-links">
+      <button class="nav-link active" data-page="dashboard">Dashboard</button>
+      <button class="nav-link" data-page="quiz">Quiz</button>
+    </div>
+    <div class="nav-status">
+      <div class="cog-load-mini">
+        <span class="cog-label">Load</span>
+        <div class="cog-bar-mini"><div class="cog-fill-mini" id="navCogFill"></div></div>
+      </div>
+      <div class="nav-emotion-chip" id="navEmotionChip" data-emotion="neutral">
+        <span class="dot"></span>
+        <span id="navEmotionText">Neutral</span>
+      </div>
+    </div>
+  </nav>
 
-      <section class="question-panel">
-        <p class="question-tag" id="questionTag">Question 1</p>
-        <h2 id="questionText">Loading...</h2>
-        <p class="message" id="messageText">Connecting to the Python emotion stream.</p>
-      </section>
+  <!-- ===== FRUSTRATION PAUSE OVERLAY ===== -->
+  <div class="pause-overlay hidden" id="pauseOverlay">
+    <div class="pause-card">
+      <div class="pause-tag">quiz paused</div>
+      <h2 id="pauseTitle">You seem frustrated</h2>
+      <p id="pauseBody">Take a moment. When you're ready, the quiz will continue with easier questions.</p>
+      <div class="breathe-ring" id="breatheRing"></div>
+      <p class="breathe-label" id="breatheLabel">Breathe in...</p>
+      <div class="pause-timer">Paused for <strong id="pauseTime">0s</strong></div>
+      <button class="btn btn-primary" id="resumeBtn">Resume with easier questions</button>
+      <button class="btn btn-secondary btn-sm" id="dismissPause">I'm fine, continue normally</button>
+    </div>
+  </div>
 
-      <section class="options" id="optionsContainer" aria-label="Answer choices"></section>
+  <main class="main-content">
 
-      <section class="feedback-panel">
-        <p id="feedbackText">Choose an option to answer.</p>
-        <button id="nextButton" class="next-button" type="button" disabled>Next Question</button>
-      </section>
+    <!-- ===== DASHBOARD ===== -->
+    <section class="page active" id="pageDashboard">
+      <div class="dash-grid">
+        <div class="dash-card dash-wide">
+          <h3 class="dash-title">Cognitive Load Index</h3>
+          <div class="cog-load-display">
+            <div class="cog-meter">
+              <svg class="cog-ring" viewBox="0 0 120 120">
+                <circle class="cog-ring-bg" cx="60" cy="60" r="52"/>
+                <circle class="cog-ring-fill" id="cogRingFill" cx="60" cy="60" r="52"/>
+              </svg>
+              <div class="cog-center">
+                <span class="cog-value" id="cogValue">--</span>
+                <span class="cog-unit">/ 100</span>
+              </div>
+            </div>
+            <div class="cog-details">
+              <div class="cog-detail-row"><span>Current Emotion</span><strong id="dashEmotion">--</strong></div>
+              <div class="cog-detail-row"><span>Stress Level</span><strong id="dashStress">--</strong></div>
+              <div class="cog-detail-row"><span>Session Duration</span><strong id="dashDuration">0:00</strong></div>
+              <div class="cog-detail-row"><span>Pauses Taken</span><strong id="dashPauses">0</strong></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="dash-card dash-wide">
+          <h3 class="dash-title">Emotion Timeline</h3>
+          <div class="dash-timeline" id="dashTimeline"></div>
+          <div class="emotion-legend dash-legend">
+            <span class="legend-item" data-emotion="happy"><span class="legend-dot"></span>Happy</span>
+            <span class="legend-item" data-emotion="focused"><span class="legend-dot"></span>Focused</span>
+            <span class="legend-item" data-emotion="surprised"><span class="legend-dot"></span>Surprised</span>
+            <span class="legend-item" data-emotion="neutral"><span class="legend-dot"></span>Neutral</span>
+            <span class="legend-item" data-emotion="confused"><span class="legend-dot"></span>Confused</span>
+            <span class="legend-item" data-emotion="sad"><span class="legend-dot"></span>Sad</span>
+            <span class="legend-item" data-emotion="frustrated"><span class="legend-dot"></span>Frustrated</span>
+          </div>
+        </div>
+
+        <div class="dash-card clickable" data-goto="quiz">
+          <h3 class="dash-title">Start Quiz</h3>
+          <p class="dash-desc">15 adaptive Math + GK questions. Difficulty shifts with your mood. Pauses when you need a break.</p>
+          <span class="dash-arrow">&rarr;</span>
+        </div>
+
+        <div class="dash-card">
+          <h3 class="dash-title">Wellbeing Score</h3>
+          <div class="wellbeing-score">
+            <span class="wb-num" id="wbNum">--</span>
+            <span class="wb-label" id="wbLabel">Start the quiz to begin tracking</span>
+          </div>
+        </div>
+
+        <div class="dash-card">
+          <h3 class="dash-title">How It Works</h3>
+          <p class="dash-desc">Your webcam detects facial expressions in real time. When you're happy or focused, questions get harder. When you're stressed, they get easier — and if frustration persists, the quiz pauses automatically to let you breathe.</p>
+        </div>
+      </div>
     </section>
+
+    <!-- ===== QUIZ ===== -->
+    <section class="page" id="pageQuiz">
+
+      <!-- Start -->
+      <div class="screen" id="quizStartScreen">
+        <div class="card">
+          <header class="hero">
+            <p class="tag">adaptive quiz</p>
+            <h1>Emotion-Aware<br>Math + GK Quiz</h1>
+            <p class="subtitle">15 questions. Webcam reads your face. Difficulty adapts. Auto-pauses when frustrated.</p>
+          </header>
+          <div class="start-actions">
+            <input type="text" id="playerName" class="name-input" placeholder="Enter your name" maxlength="20" autocomplete="off">
+            <button id="startButton" class="btn btn-primary" type="button">Start Quiz</button>
+          </div>
+          <div class="past-sessions" id="pastSessionsSection" style="display:none">
+            <h3>Recent Sessions</h3>
+            <div class="session-list" id="sessionList"></div>
+          </div>
+          <div class="leaderboard-section" id="leaderboardSection" style="display:none">
+            <h3>Leaderboard</h3>
+            <ol class="leaderboard-list" id="leaderboardList"></ol>
+          </div>
+        </div>
+      </div>
+
+      <!-- Play -->
+      <div class="screen hidden" id="quizPlayScreen">
+        <div class="card" id="quizCard" data-emotion="neutral">
+          <div class="quiz-header">
+            <div class="progress-bar-container"><div class="progress-bar" id="progressBar" style="width:0%"></div></div>
+            <div class="quiz-meta">
+              <span id="questionTag">Q1 / 15</span>
+              <span id="scoreDisplay">Score: 0</span>
+            </div>
+          </div>
+          <div class="status-grid status-grid-2">
+            <div class="status-box" id="emotionBox" data-emotion="neutral">
+              <span class="status-label">Emotion</span>
+              <strong id="emotionValue">Neutral</strong>
+            </div>
+            <div class="status-box" id="cameraBox" data-camera="starting">
+              <span class="status-label">Webcam</span>
+              <strong id="cameraValue">Starting</strong>
+            </div>
+          </div>
+          <section class="question-panel">
+            <p class="message" id="messageText">Connecting to emotion stream...</p>
+            <h2 id="questionText">Loading...</h2>
+          </section>
+          <section class="options" id="optionsContainer"></section>
+          <div class="quiz-footer">
+            <p id="feedbackText" class="feedback">Choose an option to answer.</p>
+            <div class="quiz-footer-btns">
+              <button id="pauseBtn" class="btn btn-secondary btn-sm" type="button">Pause</button>
+              <button id="nextButton" class="btn btn-primary" type="button" disabled>Next</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Results -->
+      <div class="screen hidden" id="quizResultsScreen">
+        <div class="card results-card">
+          <header class="hero">
+            <p class="tag">quiz complete</p>
+            <h1 id="resultsTitle">Nice work!</h1>
+            <p class="subtitle" id="resultsSummary">You scored 0 / 15</p>
+          </header>
+          <div class="results-grid">
+            <div class="result-stat"><span class="result-num" id="statCorrect">0</span><span class="result-label">Correct</span></div>
+            <div class="result-stat"><span class="result-num" id="statWrong">0</span><span class="result-label">Wrong</span></div>
+            <div class="result-stat"><span class="result-num" id="statAccuracy">0%</span><span class="result-label">Accuracy</span></div>
+          </div>
+          <div class="results-grid">
+            <div class="result-stat"><span class="result-num" id="statPauses">0</span><span class="result-label">Pauses</span></div>
+            <div class="result-stat"><span class="result-num" id="statHardAcc">0%</span><span class="result-label">Hard Acc.</span></div>
+            <div class="result-stat"><span class="result-num" id="statEasyAcc">0%</span><span class="result-label">Easy Acc.</span></div>
+          </div>
+          <div class="analysis-section">
+            <h3>Difficulty Breakdown</h3>
+            <div class="breakdown-grid">
+              <div class="breakdown-card"><h4>Hard Questions</h4>
+                <div class="breakdown-row"><span>Attempted</span><strong id="hardTotal">0</strong></div>
+                <div class="breakdown-row"><span>Correct</span><strong id="hardCorrect">0</strong></div>
+                <div class="breakdown-row"><span>Wrong</span><strong id="hardWrong">0</strong></div>
+                <div class="breakdown-row"><span>Accuracy</span><strong id="hardAccuracy">--</strong></div>
+              </div>
+              <div class="breakdown-card"><h4>Easy Questions</h4>
+                <div class="breakdown-row"><span>Attempted</span><strong id="easyTotal">0</strong></div>
+                <div class="breakdown-row"><span>Correct</span><strong id="easyCorrect">0</strong></div>
+                <div class="breakdown-row"><span>Wrong</span><strong id="easyWrong">0</strong></div>
+                <div class="breakdown-row"><span>Accuracy</span><strong id="easyAccuracy">--</strong></div>
+              </div>
+            </div>
+          </div>
+          <div class="analysis-section">
+            <h3>Category Breakdown</h3>
+            <div class="breakdown-grid">
+              <div class="breakdown-card"><h4>Math</h4>
+                <div class="breakdown-row"><span>Attempted</span><strong id="mathTotal">0</strong></div>
+                <div class="breakdown-row"><span>Correct</span><strong id="mathCorrect">0</strong></div>
+                <div class="breakdown-row"><span>Wrong</span><strong id="mathWrong">0</strong></div>
+                <div class="breakdown-row"><span>Accuracy</span><strong id="mathAccuracy">--</strong></div>
+              </div>
+              <div class="breakdown-card"><h4>General Knowledge</h4>
+                <div class="breakdown-row"><span>Attempted</span><strong id="gkTotal">0</strong></div>
+                <div class="breakdown-row"><span>Correct</span><strong id="gkCorrect">0</strong></div>
+                <div class="breakdown-row"><span>Wrong</span><strong id="gkWrong">0</strong></div>
+                <div class="breakdown-row"><span>Accuracy</span><strong id="gkAccuracy">--</strong></div>
+              </div>
+            </div>
+          </div>
+          <div class="analysis-section">
+            <h3>Emotion Timeline</h3>
+            <div class="emotion-graph" id="emotionGraph"></div>
+            <div class="emotion-legend">
+              <span class="legend-item" data-emotion="happy"><span class="legend-dot"></span>Happy</span>
+              <span class="legend-item" data-emotion="focused"><span class="legend-dot"></span>Focused</span>
+              <span class="legend-item" data-emotion="surprised"><span class="legend-dot"></span>Surprised</span>
+              <span class="legend-item" data-emotion="neutral"><span class="legend-dot"></span>Neutral</span>
+              <span class="legend-item" data-emotion="confused"><span class="legend-dot"></span>Confused</span>
+              <span class="legend-item" data-emotion="sad"><span class="legend-dot"></span>Sad</span>
+              <span class="legend-item" data-emotion="frustrated"><span class="legend-dot"></span>Frustrated</span>
+            </div>
+          </div>
+          <div class="analysis-section">
+            <h3>Emotion Distribution</h3>
+            <div class="emotion-dist" id="emotionDist"></div>
+          </div>
+          <div class="analysis-section">
+            <h3>Question Log</h3>
+            <div class="question-log" id="questionLog"></div>
+          </div>
+          <div class="results-actions">
+            <button id="playAgainButton" class="btn btn-primary" type="button">Play Again</button>
+            <button id="quizHomeButton" class="btn btn-secondary" type="button">Quiz Home</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
   </main>
 
   <script src="quiz-logic.js"></script>

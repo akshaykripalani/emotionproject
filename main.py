@@ -27,6 +27,9 @@ def preview_color_for_emotion(emotion: str) -> tuple[int, int, int]:
         "happy": (40, 40, 220),
         "sad": (60, 170, 60),
         "frustrated": (0, 140, 255),
+        "surprised": (220, 180, 0),
+        "confused": (180, 80, 200),
+        "focused": (200, 160, 60),
         "neutral": (220, 120, 40),
     }.get(emotion, (220, 120, 40))
 
@@ -62,7 +65,7 @@ def render_preview_frame(frame, emotion: str, camera_status: str):
 
 
 def difficulty_for_emotion(emotion: str) -> str:
-    return "easy" if emotion in {"sad", "frustrated"} else "hard"
+    return "easy" if emotion in {"sad", "frustrated", "confused"} else "hard"
 
 
 class EmotionMonitor:
@@ -288,25 +291,63 @@ class EmotionMonitor:
         smile = self._average(blendshape_scores, "mouthSmileLeft", "mouthSmileRight")
         frown = self._average(blendshape_scores, "mouthFrownLeft", "mouthFrownRight")
         brow_down = self._average(blendshape_scores, "browDownLeft", "browDownRight")
+        brow_up = self._average(blendshape_scores, "browOuterUpLeft", "browOuterUpRight")
         brow_inner_up = blendshape_scores.get("browInnerUp", 0.0)
         eye_squint = self._average(blendshape_scores, "eyeSquintLeft", "eyeSquintRight")
+        eye_wide = self._average(blendshape_scores, "eyeWideLeft", "eyeWideRight")
         cheek_squint = self._average(blendshape_scores, "cheekSquintLeft", "cheekSquintRight")
         mouth_press = self._average(blendshape_scores, "mouthPressLeft", "mouthPressRight")
         jaw_open = blendshape_scores.get("jawOpen", 0.0)
         mouth_shrug = self._average(
             blendshape_scores, "mouthShrugUpper", "mouthShrugLower"
         )
+        mouth_pucker = blendshape_scores.get("mouthPucker", 0.0)
+        nose_sneer = self._average(blendshape_scores, "noseSneerLeft", "noseSneerRight")
+        brow_asym = abs(
+            blendshape_scores.get("browDownLeft", 0.0)
+            - blendshape_scores.get("browDownRight", 0.0)
+        )
 
-        if smile >= 0.35 or (smile >= 0.25 and cheek_squint >= 0.2):
+        # --- happy: lowered thresholds for earlier detection ---
+        if smile >= 0.25 or (smile >= 0.18 and cheek_squint >= 0.12):
             return "happy"
 
-        if brow_down >= 0.2 and (eye_squint >= 0.18 or mouth_press >= 0.16 or frown >= 0.2):
+        # --- surprised: wide eyes + raised brows + open mouth ---
+        if (brow_up >= 0.15 or brow_inner_up >= 0.2) and eye_wide >= 0.12 and jaw_open >= 0.15:
+            return "surprised"
+
+        # --- frustrated: lowered thresholds ---
+        if brow_down >= 0.14 and (
+            eye_squint >= 0.12
+            or mouth_press >= 0.1
+            or frown >= 0.14
+            or nose_sneer >= 0.12
+        ):
             return "frustrated"
 
-        if frown >= 0.18 and smile < 0.22 and (brow_inner_up >= 0.1 or mouth_shrug >= 0.15):
+        # --- confused: asymmetric brows or squint + pucker ---
+        if brow_asym >= 0.1 and (eye_squint >= 0.1 or mouth_pucker >= 0.08):
+            return "confused"
+
+        if brow_inner_up >= 0.15 and eye_squint >= 0.1 and smile < 0.12:
+            return "confused"
+
+        # --- sad: lowered thresholds ---
+        if frown >= 0.12 and smile < 0.18 and (brow_inner_up >= 0.08 or mouth_shrug >= 0.1):
             return "sad"
 
-        if jaw_open >= 0.32 and smile < 0.15 and frown < 0.12:
+        # --- focused: slight brow down, no strong smile/frown ---
+        if (
+            brow_down >= 0.08
+            and eye_squint >= 0.06
+            and smile < 0.15
+            and frown < 0.1
+            and jaw_open < 0.12
+        ):
+            return "focused"
+
+        # --- open mouth without other signals = frustrated ---
+        if jaw_open >= 0.25 and smile < 0.1 and frown < 0.08:
             return "frustrated"
 
         return "neutral"
@@ -347,6 +388,11 @@ async def quiz_logic_script() -> FileResponse:
 @app.get("/styles.css")
 async def stylesheet() -> FileResponse:
     return FileResponse(BASE_DIR / "styles.css", media_type="text/css")
+
+
+@app.get("/questions.json")
+async def questions_data() -> FileResponse:
+    return FileResponse(BASE_DIR / "questions.json", media_type="application/json")
 
 
 @app.get("/api/emotion")
