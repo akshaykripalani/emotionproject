@@ -72,8 +72,11 @@
       .map((q, i) => ({ ...q, _idx: i }))
       .filter((q) => {
         if (usedCsvIndices.has(q._idx)) return false;
+        // direct 1:1 match with CSV difficulty column
         if (difficulty === "easy") return q.d === "easy";
-        return q.d === "medium" || q.d === "hard";
+        if (difficulty === "medium") return q.d === "medium";
+        if (difficulty === "hard") return q.d === "hard";
+        return false;
       });
   }
 

@@ -48,9 +48,10 @@ function initElements() {
     "emotionValue","cameraValue",
     "questionText","messageText","optionsContainer","feedbackText","nextButton","pauseBtn",
     "resultsTitle","resultsSummary",
-    "statCorrect","statWrong","statAccuracy","statPauses","statHardAcc","statEasyAcc",
-    "hardTotal","hardCorrect","hardWrong","hardAccuracy",
+    "statCorrect","statWrong","statAccuracy","statPauses","statEasyAcc","statMedAcc","statHardAcc",
     "easyTotal","easyCorrect","easyWrong","easyAccuracy",
+    "medTotal","medCorrect","medWrong","medAccuracy",
+    "hardTotal","hardCorrect","hardWrong","hardAccuracy",
     "mathTotal","mathCorrect","mathWrong","mathAccuracy",
     "gkTotal","gkCorrect","gkWrong","gkAccuracy",
     "emotionGraph","emotionDist","questionLog",
@@ -239,30 +240,27 @@ function resumeFromPause(withEasy) {
    ADAPTIVE DIFFICULTY — the core logic
    =================================================================
 
-   Two real-time signals combined:
+   Three CSV tiers: "easy", "medium", "hard"
 
-   1. PERFORMANCE SCORE (updated after each answer)
+   1. EMOTION OVERRIDE (immediate, checked every WebSocket tick):
+        frustrated / sad   →  always "easy"  (no matter what)
+        confused           →  always "easy"
+
+      If any negative emotion is detected, difficulty drops to easy
+      IMMEDIATELY. No score can override this.
+
+   2. PERFORMANCE SCORE (updated after each answer):
         correct → performanceScore + 1
         wrong   → performanceScore - 1
       Starts at 0.
 
-   2. EMOTION BIAS (recomputed every WebSocket tick, ~10x/sec)
-        happy / focused   → +1
-        surprised          → +0.5
-        neutral            → 0
-        confused           → -1
-        sad / frustrated   → -2
+   3. When emotion is NOT negative, performance decides the tier:
+        score <= 0          →  "easy"
+        score 1–2           →  "medium"
+        score >= 3          →  "hard"
 
-   FINAL SCORE = performanceScore + emotionBias
-
-        final >= 2   →  HARD   (CSV medium+hard questions)
-        final < 2    →  EASY   (CSV easy questions)
-
-   So to reach hard, user needs BOTH:
-     - positive performance (getting answers right)
-     - positive emotion (happy or focused face)
-
-   Any combination of wrong answers or negative emotion pulls toward easy.
+      Positive emotions (happy/focused) get a +1 bonus to the score
+      for tier calculation, so you reach harder tiers sooner.
 
    FORCED EASY (from pause resume) overrides everything until first
    correct answer, then normal logic resumes.
@@ -270,7 +268,7 @@ function resumeFromPause(withEasy) {
 
 const quiz = {
   playerName: "",
-  currentDifficulty: "easy",  // start gentle
+  currentDifficulty: "easy",
   performanceScore: 0,
   score: 0,
   questionNumber: 0,
@@ -281,15 +279,20 @@ const quiz = {
   emotionHistory: [],
 };
 
-function emotionBias(emotion) {
-  const map = { happy: 1, focused: 1, surprised: 0.5, neutral: 0, confused: -1, sad: -2, frustrated: -2 };
-  return map[emotion] !== undefined ? map[emotion] : 0;
-}
-
 function computeDifficulty() {
+  // forced easy from pause resume — overrides everything
   if (forcedEasy) return "easy";
-  const final = quiz.performanceScore + emotionBias(emo.current);
-  return final >= 2 ? "hard" : "easy";
+
+  // EMOTION OVERRIDE: negative emotion → easy, period
+  if (["frustrated", "sad", "confused"].includes(emo.current)) return "easy";
+
+  // positive emotions give a +1 bonus toward harder tiers
+  const bonus = ["happy", "focused"].includes(emo.current) ? 1 : 0;
+  const effective = quiz.performanceScore + bonus;
+
+  if (effective >= 3) return "hard";
+  if (effective >= 1) return "medium";
+  return "easy";
 }
 
 function showQuizScreen(id) {
@@ -427,27 +430,34 @@ function renderResults() {
   el.statAccuracy.textContent = acc + "%";
   el.statPauses.textContent = emo.pauseCount;
 
-  const hard = quiz.log.filter((q) => q.difficulty === "hard");
   const easy = quiz.log.filter((q) => q.difficulty === "easy");
-  const hc = hard.filter((q) => q.correct).length;
+  const med = quiz.log.filter((q) => q.difficulty === "medium");
+  const hard = quiz.log.filter((q) => q.difficulty === "hard");
   const ec = easy.filter((q) => q.correct).length;
+  const mc = med.filter((q) => q.correct).length;
+  const hc = hard.filter((q) => q.correct).length;
 
-  el.statHardAcc.textContent = hard.length ? Math.round((hc / hard.length) * 100) + "%" : "--";
-  el.statEasyAcc.textContent = easy.length ? Math.round((ec / easy.length) * 100) + "%" : "--";
+  const pct = (c, t) => t ? Math.round((c / t) * 100) + "%" : "--";
 
-  el.hardTotal.textContent = hard.length; el.hardCorrect.textContent = hc; el.hardWrong.textContent = hard.length - hc;
-  el.hardAccuracy.textContent = hard.length ? Math.round((hc / hard.length) * 100) + "%" : "--";
+  el.statEasyAcc.textContent = pct(ec, easy.length);
+  el.statMedAcc.textContent = pct(mc, med.length);
+  el.statHardAcc.textContent = pct(hc, hard.length);
+
   el.easyTotal.textContent = easy.length; el.easyCorrect.textContent = ec; el.easyWrong.textContent = easy.length - ec;
-  el.easyAccuracy.textContent = easy.length ? Math.round((ec / easy.length) * 100) + "%" : "--";
+  el.easyAccuracy.textContent = pct(ec, easy.length);
+  el.medTotal.textContent = med.length; el.medCorrect.textContent = mc; el.medWrong.textContent = med.length - mc;
+  el.medAccuracy.textContent = pct(mc, med.length);
+  el.hardTotal.textContent = hard.length; el.hardCorrect.textContent = hc; el.hardWrong.textContent = hard.length - hc;
+  el.hardAccuracy.textContent = pct(hc, hard.length);
 
   const mathQ = quiz.log.filter((q) => q.category === "Math");
   const gkQ = quiz.log.filter((q) => q.category !== "Math");
-  const mc = mathQ.filter((q) => q.correct).length;
-  const gc = gkQ.filter((q) => q.correct).length;
-  el.mathTotal.textContent = mathQ.length; el.mathCorrect.textContent = mc; el.mathWrong.textContent = mathQ.length - mc;
-  el.mathAccuracy.textContent = mathQ.length ? Math.round((mc / mathQ.length) * 100) + "%" : "--";
-  el.gkTotal.textContent = gkQ.length; el.gkCorrect.textContent = gc; el.gkWrong.textContent = gkQ.length - gc;
-  el.gkAccuracy.textContent = gkQ.length ? Math.round((gc / gkQ.length) * 100) + "%" : "--";
+  const mathC = mathQ.filter((q) => q.correct).length;
+  const gkC = gkQ.filter((q) => q.correct).length;
+  el.mathTotal.textContent = mathQ.length; el.mathCorrect.textContent = mathC; el.mathWrong.textContent = mathQ.length - mathC;
+  el.mathAccuracy.textContent = pct(mathC, mathQ.length);
+  el.gkTotal.textContent = gkQ.length; el.gkCorrect.textContent = gkC; el.gkWrong.textContent = gkQ.length - gkC;
+  el.gkAccuracy.textContent = pct(gkC, gkQ.length);
 
   renderEmotionGraph();
   renderEmotionDist();

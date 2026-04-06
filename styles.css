@@ -182,6 +182,9 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .analysis-section{border-top:1px solid var(--border);padding-top:22px;margin-top:22px}
 .analysis-section h3,.past-sessions h3,.leaderboard-section h3{font-size:0.78rem;font-weight:600;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);margin-bottom:14px}
 .breakdown-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.breakdown-grid-3{grid-template-columns:repeat(3,1fr)}
+.results-grid-4{grid-template-columns:repeat(4,1fr)}
+.log-diff.medium{background:var(--yellow-dim);color:var(--yellow)}
 .breakdown-card{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px}
 .breakdown-card h4{font-size:0.76rem;font-weight:600;color:var(--text);margin-bottom:12px}
 .breakdown-row{display:flex;justify-content:space-between;padding:5px 0;font-size:0.76rem;border-bottom:1px solid var(--border)}
