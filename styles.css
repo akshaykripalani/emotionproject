@@ -1,0 +1,293 @@
+:root {
+  color-scheme: light;
+  --bg-top: #f7efe5;
+  --bg-bottom: #d9ecff;
+  --surface: rgba(255, 255, 255, 0.88);
+  --surface-border: rgba(16, 24, 40, 0.08);
+  --text: #1f2937;
+  --muted: #546072;
+  --accent: #1d4ed8;
+  --accent-soft: #dbeafe;
+  --correct: #166534;
+  --correct-bg: #dcfce7;
+  --wrong: #991b1b;
+  --wrong-bg: #fee2e2;
+  --warning: #9a3412;
+  --warning-bg: #ffedd5;
+  --button: #f8fafc;
+  --button-border: #cbd5e1;
+  --shadow: 0 20px 45px rgba(31, 41, 55, 0.12);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(180deg, var(--bg-top), var(--bg-bottom));
+  color: var(--text);
+}
+
+.app {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.card {
+  width: min(100%, 860px);
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+  border-radius: 24px;
+  box-shadow: var(--shadow);
+  padding: 28px;
+  backdrop-filter: blur(8px);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card[data-emotion="happy"] {
+  border-color: rgba(185, 28, 28, 0.22);
+  box-shadow: 0 20px 45px rgba(185, 28, 28, 0.14);
+}
+
+.card[data-emotion="sad"] {
+  border-color: rgba(22, 101, 52, 0.22);
+  box-shadow: 0 20px 45px rgba(22, 101, 52, 0.14);
+}
+
+.card[data-emotion="frustrated"] {
+  border-color: rgba(154, 52, 18, 0.22);
+  box-shadow: 0 20px 45px rgba(154, 52, 18, 0.14);
+}
+
+.hero h1,
+.question-panel h2 {
+  margin: 0;
+}
+
+.eyebrow {
+  margin: 0 0 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-size: 0.78rem;
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.subtitle {
+  margin: 10px 0 0;
+  color: var(--muted);
+}
+
+.status-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin: 24px 0;
+}
+
+.status-box {
+  background: rgba(255, 255, 255, 0.75);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 16px;
+  padding: 14px;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.status-label {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.status-box strong {
+  display: block;
+}
+
+#emotionBox[data-emotion="happy"] {
+  background: rgba(254, 226, 226, 0.88);
+  border-color: rgba(185, 28, 28, 0.18);
+  color: #991b1b;
+}
+
+#emotionBox[data-emotion="sad"] {
+  background: rgba(220, 252, 231, 0.88);
+  border-color: rgba(22, 101, 52, 0.18);
+  color: var(--correct);
+}
+
+#emotionBox[data-emotion="frustrated"] {
+  background: rgba(255, 237, 213, 0.92);
+  border-color: rgba(154, 52, 18, 0.18);
+  color: var(--warning);
+}
+
+#emotionBox[data-emotion="neutral"] {
+  background: rgba(219, 234, 254, 0.88);
+  border-color: rgba(29, 78, 216, 0.18);
+  color: var(--accent);
+}
+
+#difficultyBox[data-difficulty="easy"] {
+  background: rgba(220, 252, 231, 0.88);
+  border-color: rgba(22, 101, 52, 0.18);
+  color: var(--correct);
+}
+
+#difficultyBox[data-difficulty="hard"] {
+  background: rgba(254, 226, 226, 0.88);
+  border-color: rgba(185, 28, 28, 0.18);
+  color: #991b1b;
+}
+
+#cameraBox[data-camera="live"] {
+  background: rgba(219, 234, 254, 0.88);
+  border-color: rgba(29, 78, 216, 0.18);
+}
+
+#cameraBox[data-camera="no_face"] {
+  background: rgba(255, 251, 235, 0.92);
+  border-color: rgba(202, 138, 4, 0.18);
+}
+
+#cameraBox[data-camera="camera_unavailable"],
+#cameraBox[data-camera="camera_error"] {
+  background: rgba(254, 226, 226, 0.88);
+  border-color: rgba(185, 28, 28, 0.18);
+  color: #991b1b;
+}
+
+.question-panel {
+  background: linear-gradient(135deg, rgba(29, 78, 216, 0.1), rgba(255, 255, 255, 0.7));
+  border-radius: 18px;
+  padding: 20px;
+  transition: background 0.2s ease;
+}
+
+.card[data-emotion="happy"] .question-panel {
+  background: linear-gradient(135deg, rgba(220, 38, 38, 0.12), rgba(255, 255, 255, 0.82));
+}
+
+.card[data-emotion="sad"] .question-panel {
+  background: linear-gradient(135deg, rgba(22, 163, 74, 0.12), rgba(255, 255, 255, 0.82));
+}
+
+.card[data-emotion="frustrated"] .question-panel {
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.14), rgba(255, 255, 255, 0.82));
+}
+
+.question-tag {
+  margin: 0 0 8px;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.message {
+  margin: 12px 0 0;
+  color: var(--accent);
+  font-weight: 600;
+  min-height: 24px;
+}
+
+.card[data-emotion="happy"] .message {
+  color: #b91c1c;
+}
+
+.card[data-emotion="sad"] .message {
+  color: var(--correct);
+}
+
+.card[data-emotion="frustrated"] .message {
+  color: var(--warning);
+}
+
+.options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 22px;
+}
+
+.option-button,
+.next-button {
+  border: 1px solid var(--button-border);
+  border-radius: 16px;
+  padding: 16px;
+  font: inherit;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.option-button {
+  background: var(--button);
+  color: var(--text);
+}
+
+.option-button:hover:not(:disabled),
+.next-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 22px rgba(30, 41, 59, 0.1);
+}
+
+.option-button:disabled,
+.next-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.option-button.correct {
+  background: var(--correct-bg);
+  border-color: rgba(22, 101, 52, 0.25);
+  color: var(--correct);
+}
+
+.option-button.wrong {
+  background: var(--wrong-bg);
+  border-color: rgba(153, 27, 27, 0.25);
+  color: var(--wrong);
+}
+
+.feedback-panel {
+  margin-top: 22px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+#feedbackText {
+  margin: 0;
+  color: var(--muted);
+}
+
+.next-button {
+  background: var(--accent);
+  color: white;
+  border-color: transparent;
+  min-width: 150px;
+}
+
+@media (max-width: 640px) {
+  .card {
+    padding: 20px;
+  }
+
+  .status-grid,
+  .options {
+    grid-template-columns: 1fr;
+  }
+
+  .feedback-panel {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .next-button {
+    width: 100%;
+  }
+}

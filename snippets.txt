@@ -1,0 +1,143 @@
+SNIPPET 1
+FILE: main.py
+PURPOSE: Map MediaPipe face blendshapes to the app's emotion states.
+EXPLANATION: This function reads facial-expression scores from the CV model and converts them into one of the four quiz emotions. Those emotion labels are what the backend sends to the frontend.
+
+def _classify_emotion(self, result) -> str:
+    if not result.face_blendshapes:
+        return "neutral"
+
+    blendshape_scores = {
+        item.category_name: float(item.score or 0.0) for item in result.face_blendshapes[0]
+    }
+
+    smile = self._average(blendshape_scores, "mouthSmileLeft", "mouthSmileRight")
+    frown = self._average(blendshape_scores, "mouthFrownLeft", "mouthFrownRight")
+    brow_down = self._average(blendshape_scores, "browDownLeft", "browDownRight")
+    brow_inner_up = blendshape_scores.get("browInnerUp", 0.0)
+    eye_squint = self._average(blendshape_scores, "eyeSquintLeft", "eyeSquintRight")
+    cheek_squint = self._average(blendshape_scores, "cheekSquintLeft", "cheekSquintRight")
+    mouth_press = self._average(blendshape_scores, "mouthPressLeft", "mouthPressRight")
+    jaw_open = blendshape_scores.get("jawOpen", 0.0)
+    mouth_shrug = self._average(
+        blendshape_scores, "mouthShrugUpper", "mouthShrugLower"
+    )
+
+    if smile >= 0.35 or (smile >= 0.25 and cheek_squint >= 0.2):
+        return "happy"
+
+    if brow_down >= 0.2 and (eye_squint >= 0.18 or mouth_press >= 0.16 or frown >= 0.2):
+        return "frustrated"
+
+    if frown >= 0.18 and smile < 0.22 and (brow_inner_up >= 0.1 or mouth_shrug >= 0.15):
+        return "sad"
+
+    if jaw_open >= 0.32 and smile < 0.15 and frown < 0.12:
+        return "frustrated"
+
+    return "neutral"
+
+
+SNIPPET 2
+FILE: app.js
+PURPOSE: Open the WebSocket and keep the live emotion status updated in the browser.
+EXPLANATION: This function connects the browser to the Python backend, listens for live emotion updates, and refreshes the UI status boxes whenever new emotion data arrives.
+
+function connectEmotionSocket() {
+  const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+  const socket = new WebSocket(`${protocol}//${window.location.host}/ws/emotion`);
+
+  socket.addEventListener("open", () => {
+    state.socketConnected = true;
+    updateStatus();
+  });
+
+  socket.addEventListener("message", (event) => {
+    const payload = JSON.parse(event.data);
+
+    state.liveEmotion = payload.emotion || "neutral";
+    state.cameraStatus = payload.camera_status || "starting";
+    state.faceDetected = Boolean(payload.face_detected);
+    state.socketConnected = true;
+
+    updateStatus();
+  });
+
+  socket.addEventListener("close", () => {
+    state.socketConnected = false;
+    state.cameraStatus = "starting";
+    state.faceDetected = false;
+    updateStatus();
+
+    window.clearTimeout(state.reconnectTimer);
+    state.reconnectTimer = window.setTimeout(connectEmotionSocket, 2000);
+  });
+
+  socket.addEventListener("error", () => {
+    socket.close();
+  });
+}
+
+
+SNIPPET 3
+FILE: quiz-logic.js
+PURPOSE: Generate easy and hard math questions with valid multiple-choice options.
+EXPLANATION: This function creates the actual quiz problems. It chooses number ranges based on difficulty, makes sure division questions stay clean, and returns the question text, correct answer, and MCQ options.
+
+function generateQuestion(difficulty) {
+  const operation = pickOperation();
+  let left;
+  let right;
+  let answer;
+  let symbol;
+
+  if (difficulty === "easy") {
+    if (operation === "plus") {
+      left = randomInt(0, 10);
+      right = randomInt(0, 10);
+      answer = left + right;
+      symbol = "+";
+    } else if (operation === "minus") {
+      left = randomInt(0, 10);
+      right = randomInt(0, left);
+      answer = left - right;
+      symbol = "-";
+    } else if (operation === "multiply") {
+      left = randomInt(1, 5);
+      right = randomInt(1, 5);
+      answer = left * right;
+      symbol = "x";
+    } else {
+      right = randomInt(1, 5);
+      answer = randomInt(1, 10);
+      left = right * answer;
+      symbol = "/";
+    }
+  } else if (operation === "plus") {
+    left = randomInt(10, 60);
+    right = randomInt(10, 60);
+    answer = left + right;
+    symbol = "+";
+  } else if (operation === "minus") {
+    left = randomInt(20, 80);
+    right = randomInt(10, left - 5);
+    answer = left - right;
+    symbol = "-";
+  } else if (operation === "multiply") {
+    left = randomInt(3, 12);
+    right = randomInt(3, 12);
+    answer = left * right;
+    symbol = "x";
+  } else {
+    right = randomInt(2, 12);
+    answer = randomInt(2, 12);
+    left = right * answer;
+    symbol = "/";
+  }
+
+  return {
+    text: `${left} ${symbol} ${right} = ?`,
+    correctAnswer: answer,
+    options: createOptions(answer, difficulty),
+  };
+}

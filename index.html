@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Emotion Math Quiz</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="app">
+    <section class="card" id="appCard" data-emotion="neutral">
+      <header class="hero">
+        <p class="eyebrow">College Project</p>
+        <h1>Emotion-Aware Math Quiz</h1>
+        <p class="subtitle">Python reads the webcam, detects emotion live, and the quiz adapts in real time.</p>
+      </header>
+
+      <section class="status-grid" aria-label="Quiz status">
+        <div class="status-box" id="emotionBox" data-emotion="neutral">
+          <span class="status-label">Emotion</span>
+          <strong id="emotionValue">Neutral</strong>
+        </div>
+        <div class="status-box" id="difficultyBox" data-difficulty="hard">
+          <span class="status-label">Difficulty</span>
+          <strong id="difficultyValue">Hard</strong>
+        </div>
+        <div class="status-box" id="cameraBox" data-camera="starting">
+          <span class="status-label">Webcam</span>
+          <strong id="cameraValue">Starting...</strong>
+        </div>
+        <div class="status-box">
+          <span class="status-label">Score</span>
+          <strong id="scoreValue">0 / 0</strong>
+        </div>
+      </section>
+
+      <section class="question-panel">
+        <p class="question-tag" id="questionTag">Question 1</p>
+        <h2 id="questionText">Loading...</h2>
+        <p class="message" id="messageText">Connecting to the Python emotion stream.</p>
+      </section>
+
+      <section class="options" id="optionsContainer" aria-label="Answer choices"></section>
+
+      <section class="feedback-panel">
+        <p id="feedbackText">Choose an option to answer.</p>
+        <button id="nextButton" class="next-button" type="button" disabled>Next Question</button>
+      </section>
+    </section>
+  </main>
+
+  <script src="quiz-logic.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
