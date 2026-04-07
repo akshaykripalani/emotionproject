@@ -8,6 +8,7 @@ const {
   formatCameraStatus,
   generateQuestion,
   generateMathQuestion,
+  loadCSVQuestions,
   resetUsedQuestions,
 } = require("../quiz-logic.js");
 
@@ -63,6 +64,17 @@ test("generateMathQuestion returns valid hard math questions", () => {
   }
 });
 
+test("generateMathQuestion returns valid medium math questions", () => {
+  for (let i = 0; i < 50; i++) {
+    const q = generateMathQuestion("medium");
+    assert.equal(q.category, "Math");
+    assert.equal(q.options.length, 4);
+    assert.equal(new Set(q.options).size, 4);
+    assert.ok(q.options.includes(q.correctAnswer));
+    assert.equal(parseQuestion(q.text), q.correctAnswer);
+  }
+});
+
 test("generateQuestion falls back to math when no CSV loaded", () => {
   // in Node env, no CSV is loaded, so GK falls back to math
   resetUsedQuestions();
@@ -84,4 +96,19 @@ test("capitalize and formatCameraStatus return expected labels", () => {
   assert.equal(formatCameraStatus(true, "live", true), "Tracking");
   assert.equal(formatCameraStatus(true, "no_face", false), "No Face");
   assert.equal(formatCameraStatus(true, "camera_error", false), "Error");
+});
+
+test("loadCSVQuestions resets stale state when fetch returns invalid data", async () => {
+  const originalFetch = global.fetch;
+  try {
+    global.fetch = async () => ({
+      ok: true,
+      json: async () => [{ q: "bad row", d: "invalid", c: "x", a: "True" }],
+    });
+    await loadCSVQuestions();
+    const q = generateQuestion("medium");
+    assert.equal(q.category, "Math");
+  } finally {
+    global.fetch = originalFetch;
+  }
 });

@@ -54,12 +54,18 @@
         return r.json();
       })
       .then((data) => {
-        if (Array.isArray(data) && data.length > 0) {
-          csvQuestions = data;
-          csvLoaded = true;
-        }
+        const normalized = Array.isArray(data)
+          ? data.filter((q) => q && typeof q.q === "string" && ["easy", "medium", "hard"].includes(q.d))
+          : [];
+        csvQuestions = normalized;
+        csvLoaded = normalized.length > 0;
+        usedCsvIndices = new Set();
       })
-      .catch(() => { csvQuestions = []; csvLoaded = false; });
+      .catch(() => {
+        csvQuestions = [];
+        csvLoaded = false;
+        usedCsvIndices = new Set();
+      });
   }
 
   function resetUsedQuestions() {
@@ -91,6 +97,11 @@
       else if (op === "minus")   { left = randomInt(0, 10); right = randomInt(0, left); answer = left - right; symbol = "-"; }
       else if (op === "multiply"){ left = randomInt(1, 5); right = randomInt(1, 5); answer = left * right; symbol = "x"; }
       else                       { right = randomInt(1, 5); answer = randomInt(1, 10); left = right * answer; symbol = "/"; }
+    } else if (difficulty === "medium") {
+      if (op === "plus")         { left = randomInt(5, 30); right = randomInt(5, 30); answer = left + right; symbol = "+"; }
+      else if (op === "minus")   { left = randomInt(15, 50); right = randomInt(5, left - 3); answer = left - right; symbol = "-"; }
+      else if (op === "multiply"){ left = randomInt(2, 9); right = randomInt(2, 9); answer = left * right; symbol = "x"; }
+      else                       { right = randomInt(2, 9); answer = randomInt(2, 10); left = right * answer; symbol = "/"; }
     } else {
       if (op === "plus")         { left = randomInt(10, 60); right = randomInt(10, 60); answer = left + right; symbol = "+"; }
       else if (op === "minus")   { left = randomInt(20, 80); right = randomInt(10, left - 5); answer = left - right; symbol = "-"; }
